@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/snakemake/snakefmt
+    rev: v0.8.0
+    hooks:
+      - id: snakefmt
+  - repo: https://github.com/psf/black
+    rev: 23.9.0
+    hooks:
+      - id: black
+      - id: black-jupyter
+#   - repo: https://github.com/lorenzwalthert/precommit
+#     rev: v0.3.0
+#     hooks:
+#       - id: lintr
+#       - id: style-files
