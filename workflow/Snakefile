@@ -1,0 +1,28 @@
+configfile: "config/config.yaml"
+
+
+include: "rules/gencode.smk"
+include: "rules/gsea.smk"
+include: "rules/lincs.smk"
+include: "rules/cvd-bike.smk"
+include: "rules/cvd-starnet.smk"
+include: "rules/cancer-tcga.smk"
+include: "rules/cluster.smk"
+include: "rules/phony.smk"
+
+
+rule all:
+    input:
+        "results/pathway/",
+        "results/gene/",
+        "results/compound/",
+
+
+module EHR:
+    snakefile:
+        "../EHR-OMOP/validate.smk"
+    prefix:
+        "EHR-OMOP"
+
+
+use rule * from EHR

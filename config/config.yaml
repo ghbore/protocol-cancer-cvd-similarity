@@ -1,0 +1,60 @@
+gencode_version: "36"
+msigdb_version: "7.2"
+
+# criteria for idenifying outlier genes
+pvalue_range:
+  - 0
+  - 0.5
+beta_range:
+  - "-Inf"
+  - "Inf"
+
+bike_plaque:
+  beta_range:
+    - -10
+    - 10
+bike_pbmc:
+  beta_range:
+    - -10
+    - 10
+tcga:
+  beta_range:
+    - -10
+    - 10
+
+# cluster parameters
+dataset_clustering:
+  cancer_only:
+    datasets: ["ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", 
+        "ESCA", "GBM", "HNSC", "KIRC", "KIRP", "LAML", "LGG",
+        "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "READ",
+         "SARC", "SKCM", "STAD", "THCA", "UCEC", "UCS", "UVM"
+      ]
+    resolution: 1
+  athero_and_cancer:
+    datasets: ["AOR_vs_MAM", "AOR_duke", "AOR_syntax", "bike_plaque",
+        "ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", 
+        "ESCA", "GBM", "HNSC", "KIRC", "KIRP", "LAML", "LGG",
+        "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "READ",
+         "SARC", "SKCM", "STAD", "THCA", "UCEC", "UCS", "UVM"
+      ]
+    resolution: 0.4
+
+# dataset groups
+dataset_grouping:
+  cancer_clusters:
+    inflammatory: ["BRCA" , "CESC" , "GBM" , "LGG" , "LUSC" , "OV" , "PAAD" , "READ" , "STAD" , "THCA"]
+    proliferative: ["ACC" , "BLCA" , "COAD" , "KIRC" , "KIRP" , "LUAD" , "MESO" , "SARC" , "SKCM" , "UCEC"]
+    metabolic: ["CHOL" , "ESCA" , "HNSC" , "LAML" , "LIHC" , "UCS" , "UVM"]
+  athero_vs_cancer:
+    atherosclerosis: ["AOR_vs_MAM", "AOR_duke", "AOR_syntax", "bike_plaque"]
+    cancer: ["ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", 
+        "ESCA", "GBM", "HNSC", "KIRC", "KIRP", "LAML", "LGG",
+        "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "READ",
+         "SARC", "SKCM", "STAD", "THCA", "UCEC", "UCS", "UVM"
+      ]
+  athero_vs_cancer2:
+    atherosclerosis: ["AOR_vs_MAM", "AOR_duke", "AOR_syntax", "bike_plaque"]
+    athero_similar: ["BRCA", "CESC", "GBM", "LGG", "LUSC", "OV", "PAAD", "READ", "STAD", "THCA"]
+    athero_dissimilar: ["ACC", "BLCA", "COAD", "KIRC", "KIRP", "LUAD", "MESO", "SARC",
+      "SKCM", "UCEC", "CHOL", "ESCA", "HNSC", "LAML", "UCS", "UVM"]

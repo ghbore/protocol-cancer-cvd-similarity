@@ -1,0 +1,206 @@
+---
+title: "Identifying the Shared Risks"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+  highlight: tango
+  number_sections: no
+  theme: default
+  toc: yes
+  toc_depth: 3
+  toc_float:
+    collapsed: no
+    smooth_scroll: yes
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# init env
+library(tidyverse)
+
+extrafont::loadfonts()
+theme_set(theme_linedraw(base_size = 12, base_family = "Arial"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# configs and functions
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# load data
+df <- lapply(snakemake@input, function (f){
+    df <- readRDS(f)
+    if ("dataset" %in% colnames(df)){
+        return(df)
+    }else {
+        mutate(
+            df, 
+            dataset = basename(f) |> str_remove("\\.[^.]+$")
+        )
+    }
+}) |>
+    bind_rows() |>
+    select(dataset, ID, NES) |>
+    right_join(
+        snakemake@params[["groups"]] |>
+            lapply(function (v) tibble(dataset = v)) |>
+            bind_rows(.id = "group")
+    )
+```
+
+## Detrimental probability
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# fit multinorm
+extreme_nes <- 4
+rds <- paste(snakemake@output[[1]], ".rds", sep = "")
+
+if (file.exists(rds)){
+    prob <- readRDS(rds)
+}else {
+    prob <- group_by(df, ID) |>
+        group_modify(function (.x, .y){
+            v <- nnet::multinom(group ~ NES, data = .x) |>
+                predict(
+                    newdata = data.frame(NES = extreme_nes),
+                    type = "probs"
+                )
+            if (length(v) == 1){
+                d <- matrix(c(1-v, v), nrow = 1, 
+                        dimnames = list(NULL, levels(factor(.x$group)))
+                    ) |>
+                    as_tibble()
+            }else {
+                d <- matrix(v, nrow = 1, dimnames = list(NULL, names(v))) |>
+                    as_tibble()
+            }
+            mutate(d, NES = extreme_nes)
+        }) |>
+        ungroup()
+    saveRDS(prob, rds)
+}
+
+DT::datatable(filter(prob, NES > 0))
+```
+
+## Quadrant plot {.tabset}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## prepare for quadrant plot
+comparison <- distinct(df, group) |>
+    with(combn(group, 2)) |>
+    t() |>
+    as.data.frame() |>
+    (`colnames<-`)(value = c("x", "y")) |>
+    mutate(label = str_glue("{x} vs {y}"))
+
+gen_plot <- function (df, x, y){
+    stat <- filter(df, group == x | group == y) |>
+        group_by(group, ID) |>
+        group_modify(function (.x, .y){
+            tibble(
+                NES = median(.x$NES),
+                orig_nes = list(.x$NES)
+            )
+        }) |>
+        group_by(ID) |>
+        group_modify(function (.x, .y){
+            tibble(
+                NES_x = .x$NES[.x$group == x],
+                NES_y = .x$NES[.x$group == y],
+                quad = case_when(
+                    NES_x > 0 & NES_y > 0 ~ 1L,
+                    NES_x < 0 & NES_y > 0 ~ 2L,
+                    NES_x < 0 & NES_y < 0 ~ 3L,
+                    NES_x > 0 & NES_y < 0 ~ 4L,
+                    TRUE ~ NA_integer_
+                ),
+                pval = case_when(
+                    quad == 1L ~ wilcox.test(unlist(.x$orig_nes))$p.value,
+                    quad == 2L ~ wilcox.test(c(
+                        - .x$orig_nes[.x$group == x][[1]],
+                        + .x$orig_nes[.x$group == y][[1]]
+                    ))$p.value,
+                    quad == 3L ~ wilcox.test(c(
+                        - .x$orig_nes[.x$group == x][[1]],
+                        - .x$orig_nes[.x$group == y][[1]]
+                    ))$p.value,
+                    quad == 4L ~ wilcox.test(c(
+                        + .x$orig_nes[.x$group == x][[1]],
+                        - .x$orig_nes[.x$group == y][[1]]
+                    ))$p.value,
+                    TRUE ~ NA_real_
+                )
+            )
+        }) |>
+        ungroup() |>
+        filter(!is.na(quad))
+    stat <- left_join(stat,
+            group_by(stat, quad) |>
+                summarize(n_term = n()) |>
+                ungroup() |>
+                mutate(n_term = case_when(
+                    quad %in% c(1, 2) ~ max(n_term[quad %in% c(1, 2)]),
+                    quad %in% c(3, 4) ~ max(n_term[quad %in% c(3, 4)])
+                ))
+        ) |>
+        arrange(quad, pval)
+
+    ps <- group_by(stat, quad) |>
+        group_map(function (.x, .y){
+            ymax <- .x$n_term[1]
+            lvl <- c(rev(.x$ID), paste0(".", letters[1:ymax]))[1:ymax]
+            if (.y$quad[1] %in% c(3, 4)){
+                lvl <- rev(lvl)
+            }
+            filter(df, group == x | group == y, ID %in% .x$ID) |>
+                mutate(
+                    ID = factor(ID, levels = lvl),
+                    group = factor(group, levels = c(y, x))
+                ) |>
+                ggplot(aes(NES, ID, color = group)) +
+                    geom_vline(xintercept = 0, linetype = 3, color = "gray") +
+                    ggbeeswarm::geom_beeswarm(
+                        aes(group = group), 
+                        groupOnX = FALSE, 
+                        cex = 0.5, size = 0.1,
+                        dodge.width = 0.8
+                    ) +
+                    geom_boxplot(size = 0.1/.pt, outlier.shape = NA) +
+                    scale_y_discrete(
+                        label = function (x) ifelse(str_starts(x, "\\."), "", x),
+                        drop = FALSE
+                    ) +
+                    guides(color = "none") +
+                    theme_classic(base_size = 12) +
+                    theme(
+                        axis.line = element_blank(),
+                        axis.ticks = element_blank(),
+                        axis.text.x = element_blank(),
+                        axis.text.y = element_text(size = 8),
+                        axis.title = element_blank()
+                    )
+        })
+    
+    distinct(stat, quad, n_term) |>
+        filter(quad %in% c(1, 3)) |>
+        transmute(
+            x = ifelse(quad == 1, 1, -1),
+            y = ifelse(quad == 1, n_term, - n_term)
+        ) |>
+        ggplot(aes(x, y)) +
+            geom_point(color = "transparent") +
+            annotation_custom(ggplotGrob(ps[[1]]), xmin = 0.1, xmax = Inf, ymin = 0.1, ymax = Inf) +
+            annotation_custom(ggplotGrob(ps[[2]]), xmin = -0.1, xmax = -Inf, ymin = 0.1, ymax = Inf) +
+            annotation_custom(ggplotGrob(ps[[3]]), xmin = -0.1, xmax = -Inf, ymin = -0.1, ymax = -Inf) +
+            annotation_custom(ggplotGrob(ps[[4]]), xmin = 0.1, xmax = Inf, ymin = -0.1, ymax = -Inf) +
+            geom_hline(yintercept = 0) +
+            geom_vline(xintercept = 0) +
+            annotate("text", Inf, 0, label = x, size = 12/.pt, hjust = 1, vjust = 1) +
+            annotate("text", 0, Inf, label = y, size = 12/.pt, angle = 90, hjust = 1, vjust = 1) +
+            theme_void()
+}
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+for (i in seq(nrow(comparison))){
+    cat("\n\n### ", comparison$label[i], "\n\n")
+    print(gen_plot(df, comparison$x[i], comparison$y[i]))
+}
+```
