@@ -16,6 +16,6 @@ rule compile_genecode:
         gff=rules.download_gencode.output.gff,
         entrez=rules.download_gencode.output.entrez,
     output:
-        "resources/gencode.rda",
+        "resources/gencode.rds",
     script:
         "../scripts/gencode.R"

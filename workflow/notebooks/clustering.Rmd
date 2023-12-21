@@ -24,32 +24,41 @@ theme_set(theme_linedraw(base_size = 12, base_family = "Arial"))
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # configs and functions
-
+read_profile <- function (f){
+    if (str_ends(f, ".rds")){
+        df <- readRDS(f)
+    }else if (str_ends(f, ".tsv")){
+        df <- read_tsv(f)
+    }else if (str_ends(f, ".xls") || str_ends(f, ".xlsx")){
+        df <- readxl::read_excel(f)
+    }else {
+        stop(str_glue("Unrecognized file format: {f}\n"))
+    }
+    if (! "dataset" %in% colnames(df)){
+        df["dataset"] <- str_remove(basename(f), "\\.[^.]+$")
+    }
+    res <- transmute(
+        df, 
+        dataset,
+        ID = pick(
+            any_of(c("description", "Description", "ID"))
+        )[, 1, drop=TRUE],
+        NES
+    )
+    return(res)
+}
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # load data
-df <- lapply(snakemake@input, function (f){
-    df <- readRDS(f)
-    if ("dataset" %in% colnames(df)){
-        return(df)
-    }else {
-        mutate(
-            df, 
-            dataset = basename(f) |> str_remove("\\.[^.]+$")
-        )
-    }
-}) |>
+df <- lapply(snakemake@input, read_profile) |>
     bind_rows()
-
-df <- filter(df, dataset %in% snakemake@params$datasets)
 ```
 
 ## Heatmap
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-select(df, dataset, ID, NES) |>
-    pivot_wider(ID, names_from = dataset, values_from = NES) |>
+pivot_wider(df, ID, names_from = dataset, values_from = NES) |>
     column_to_rownames("ID") |>
     pheatmap::pheatmap(
         clustering_distance_rows = "correlation",
@@ -65,8 +74,7 @@ dist_cosine <- function (x) {
     as.dist(1 - sim)
 }
 
-select(df, dataset, ID, NES) |>
-    pivot_wider(ID, names_from = dataset, values_from = NES) |>
+pivot_wider(df, ID, names_from = dataset, values_from = NES) |>
     column_to_rownames("ID") |>
     t() |>
     dist_cosine() |>

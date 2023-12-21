@@ -9,24 +9,14 @@ suppressPackageStartupMessages({
     landmark <- readRDS(landmark) |>
         select(ensembl, symbol = old_symbol)
     lapply(inputs, function (f){
-        se <- readRDS(f)
-        setNames(
-            se@assays@data,
-            names(se@assays@data) %||% 
-                str_remove(basename(f), "\\.[^.]+$")
-        ) |>
-            lapply(function (d){
-                bind_cols(
-                    se@elementMetadata |> 
-                        as_tibble() |>
-                        select(ensembl),
-                    d
-                )
-            }) |>
-            bind_rows(.id = "dataset") |>
-            dplyr::rename(any_of(c(
-                beta = "logHR"
-            ))) |>
+        readRDS(f) |>
+            mutate(
+                dataset = str_remove(basename(f), "\\.[^.]+$"),
+                ensembl,
+                beta,
+                pval,
+                .keep = "none"
+            ) |>
             filter(abs(beta) <= 10, abs(beta) >= 0.1, pval <= 0.05) |>
             inner_join(landmark)
     }) |>

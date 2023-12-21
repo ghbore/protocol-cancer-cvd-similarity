@@ -3,7 +3,6 @@
 suppressPackageStartupMessages({
     library(tidyverse)
     library(survival)
-    library(SummarizedExperiment)
 })
 
 get_survival_stat <- function (df, ...){
@@ -40,7 +39,7 @@ get_survival_stat <- function (df, ...){
         as_tibble()
 }
 
-(\ (expr, pheno, anno, output, threads = 8){
+(\ (expr, pheno, anno, output, target = "BRCA", threads = 8){
     pheno <- readRDS(pheno)
     expr <- data.table::fread(expr)
     colnames(expr)[1] <- "ensembl"
@@ -53,6 +52,7 @@ get_survival_stat <- function (df, ...){
                 select(!ensembl) |>
                 pivot_longer(everything(), names_to = "sample", values_to = "gene") |>
                 left_join(pheno, by = "sample") |>
+                filter(disease == target) |>
                 group_by(disease) |>
                 group_modify(get_survival_stat) |>
                 ungroup() |>
@@ -61,22 +61,13 @@ get_survival_stat <- function (df, ...){
         bind_rows()
     
     df <- inner_join(stats, readRDS(anno))
-
-    distinct(df, disease) |>
-        pull(disease, disease) |>
-        lapply(function (s){
-            filter(df, disease == s) |>
-                select(logHR, pval)
-        }) |>
-        SummarizedExperiment(
-            rowData = filter(df, disease == disease[1]) |>
-                select(ensembl, symbol, entrez)
-        ) |>
+    select(df, ensembl, entrez, symbol, beta = logHR, pval) |>
         saveRDS(output)
 })(
     snakemake@input[["expr"]],
     snakemake@input[["pheno"]],
     snakemake@input[["anno"]],
     snakemake@output[[1]],
+    target = snakemake@wildcards[["tcga"]],
     threads = snakemake@threads
 )

@@ -1,15 +1,24 @@
 from pathlib import Path
 
 
+def gather_clustering_input_files(wildcards):
+    exts = ("rds", "tsv", "xlsx", "xls")
+    res = list()
+    for name in config["dataset_clustering"][wildcards.name]["datasets"]:
+        candidates = ["results/pathway/" + name + "." + ext for ext in exts]
+        candidates = [f for f in candidates if Path(f).is_file()]
+        if len(candidates) == 0:
+            raise Exception("no input file for dataset " + name)
+        res.append(candidates[0])
+    return res
+
+
 rule clustering:
     input:
-        [f for f in Path("results/pathway/").glob("*.rds")],
+        gather_clustering_input_files,
     output:
         "reports/{name}-clustering.html",
     params:
-        datasets=lambda wildcards: config["dataset_clustering"][wildcards.name][
-            "datasets"
-        ],
         resolution=lambda wildcards: config["dataset_clustering"][wildcards.name][
             "resolution"
         ],
@@ -17,9 +26,23 @@ rule clustering:
         "../notebooks/clustering.Rmd"
 
 
+def gather_grouping_input_files(wildcards):
+    exts = ("rds", "tsv", "xlsx", "xls")
+    res = list()
+    groups = config["dataset_grouping"][wildcards.name]
+    datasets = [ds for lst in groups.values() for ds in lst]
+    for name in datasets:
+        candidates = ["results/pathway/" + name + "." + ext for ext in exts]
+        candidates = [f for f in candidates if Path(f).is_file()]
+        if len(candidates) == 0:
+            raise Exception("no input file for dataset " + name)
+        res.append(candidates[0])
+    return res
+
+
 rule shared_risks:
     input:
-        [f for f in Path("results/pathway/").glob("*.rds")],
+        gather_grouping_input_files,
     output:
         "reports/{name}-shared_risks.html",
     params:

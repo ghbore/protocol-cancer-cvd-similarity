@@ -8,6 +8,7 @@ include: "rules/cvd-bike.smk"
 include: "rules/cvd-starnet.smk"
 include: "rules/cancer-tcga.smk"
 include: "rules/cluster.smk"
+include: "rules/custom.smk"
 include: "rules/phony.smk"
 
 

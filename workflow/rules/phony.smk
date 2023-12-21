@@ -2,7 +2,7 @@ rule Download:
     input:
         "resources/gencode.gff.gz",
         "resources/gencode.metadata.entrez",
-        "resources/h.all.entrez.gmt",
+        "resources/gsea/" + config.get("enrichment_analysis_database", "MSigDB").lower(),
         ancient("resources/bike/HG-U133_Plus_2-na36-annot-csv.zip"),
         "resources/bike/series.gz",
         "resources/lincs/GPL20573.tsv.gz",
@@ -17,7 +17,6 @@ rule Download:
 rule Compile:
     input:
         "resources/gencode.rds",
-        "resources/hallmark.rds",
         "resources/bike/anno.rds",
         "resources/bike/data.rds",
         "resources/lincs/landmark.rds",
@@ -25,22 +24,35 @@ rule Compile:
         "resources/tcga/pheno.rds",
 
 
+def list_all_gene_input(wildcards):
+    datasets = set()
+    for name, cfg in config["dataset_clustering"].items():
+        datasets.update(cfg["datasets"])
+    for name, cfg in config["dataset_grouping"].items():
+        for k, v in cfg.items():
+            datasets.update(v)
+    negative = [name for name, cfg in config["datasets"].items() if "pathway" in cfg]
+    return ["results/gene/" + name + ".rds" for name in datasets.difference(negative)]
+
+
 rule Gene:
     input:
-        "results/gene/AOR_duke.rds",
-        "results/gene/AOR_syntax.rds",
-        "results/gene/AOR_vs_MAM.rds",
-        "results/gene/bike_plaque.rds",
-        "results/gene/tcga.rds",
+        list_all_gene_input,
+
+
+def list_all_pathway_input(wildcards):
+    datasets = set()
+    for name, cfg in config["dataset_clustering"].items():
+        datasets.update(cfg["datasets"])
+    for name, cfg in config["dataset_grouping"].items():
+        for k, v in cfg.items():
+            datasets.update(v)
+    return ["results/pathway/" + name + ".rds" for name in datasets]
 
 
 rule Pathway:
     input:
-        "results/pathway/AOR_duke.rds",
-        "results/pathway/AOR_syntax.rds",
-        "results/pathway/AOR_vs_MAM.rds",
-        "results/pathway/bike_plaque.rds",
-        "results/pathway/tcga.rds",
+        list_all_pathway_input,
 
 
 rule Cluster:
@@ -52,6 +64,16 @@ rule Cluster:
 
 rule Common:
     input:
+        expand(
+            "reports/{name}-shared_risks.html", name=config["dataset_grouping"].keys()
+        ),
+
+
+rule Report:
+    input:
+        expand(
+            "reports/{name}-clustering.html", name=config["dataset_clustering"].keys()
+        ),
         expand(
             "reports/{name}-shared_risks.html", name=config["dataset_grouping"].keys()
         ),

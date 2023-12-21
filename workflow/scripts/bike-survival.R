@@ -31,12 +31,14 @@ get_survival_stat <- function (df, ...){
         as_tibble()
 }
 
-(\ (dat, anno, outputs, threads = 8){
+(\ (dat, anno, output, source = "plaque", threads = 8){
+    target_source = match.arg(source, c("plaque", "pbmc"))
     se <- readRDS(dat)
     stats <- parallel::mclapply(seq(nrow(se)), function (i){
             colData(se) |>
                 as_tibble() |>
                 mutate(gene = assay(se)[i, ] |> unlist()) |>
+                dplyr::filter(source == target_source) |>
                 group_by(source) |>
                 group_modify(get_survival_stat) |>
                 ungroup() |>
@@ -45,28 +47,18 @@ get_survival_stat <- function (df, ...){
         bind_rows()
 
     df <- left_join(stats, readRDS(anno)) |>
-        filter(!is.na(ensembl)) |>
+        dplyr::filter(!is.na(ensembl)) |>
         arrange(source, ensembl, pval) |>
         group_by(source, ensembl) |>
         slice_head() |>
         ungroup()
     
-    for (src in names(outputs)){
-        if (src %in% unique(df$source)){
-            SummarizedExperiment(
-                list(
-                    filter(df, source == src) |> 
-                        select(logHR, pval)
-                ),
-                rowData = filter(df, source == src) |>
-                    select(ensembl, symbol, entrez)
-            ) |>
-                saveRDS(outputs[[src]])
-        }
-    }
+    dplyr::select(df, ensembl, entrez, symbol, beta = logHR, pval) |>
+        saveRDS(output)
 })(
     snakemake@input[["data"]],
     snakemake@input[["anno"]],
-    snakemake@output,
+    snakemake@output[[1]],
+    source = snakemake@params[["source"]],
     threads = snakemake@threads
 )

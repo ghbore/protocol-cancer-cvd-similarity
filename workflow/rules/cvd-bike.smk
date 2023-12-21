@@ -38,8 +38,9 @@ rule run_survival_bike:
         data=rules.compile_bike.output,
         anno=rules.compile_bike_array_anno.output,
     output:
-        pbmc="results/gene/bike_pbmc.rds",
-        plaque="results/gene/bike_plaque.rds",
+        "results/gene/bike_plaque.rds",
+    params:
+        source="plaque",
     threads: 8
     script:
         "../scripts/bike-survival.R"

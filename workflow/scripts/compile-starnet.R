@@ -2,27 +2,20 @@
 
 suppressPackageStartupMessages({
     library(tidyverse)
-    library(SummarizedExperiment)
 })
 
 (\ (input, anno, output, beta_col = "beta", pval_col = "pval"){
     df <- readxl::read_xlsx(input)
     colnames(df)[1] <- "ensembl"
-    df <- select(df, ensembl, beta = !!beta_col, pval = !!pval_col) |>
+    select(df, ensembl, beta = !!beta_col, pval = !!pval_col) |>
+        mutate(across(c(beta, pval), as.numeric)) |>
         left_join(readRDS(anno)) |>
-        select(ensembl, beta, pval, symbol, entrez)
-    SummarizedExperiment(
-        list(
-            select(df, beta, pval) |>
-                mutate(across(everything(), as.numeric))
-        ),
-        rowData = select(df, ensembl, symbol, entrez)
-    ) |>
+        select(ensembl, entrez, symbol, beta, pval) |>
         saveRDS(output)
 })(
     snakemake@input[["source"]],
     snakemake@input[["anno"]],
     snakemake@output[[1]],
-    snakemake@params[["beta"]],
-    snakemake@params[["pval"]]
+    beta_col = snakemake@params[["beta"]],
+    pval_col = snakemake@params[["pval"]]
 )

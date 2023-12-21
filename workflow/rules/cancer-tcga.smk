@@ -33,13 +33,19 @@ rule compile_pheno:
         "../scripts/compile-tcga-pheno.R"
 
 
+wildcard_constraints:
+    tcga="ACC|BLCA|BRCA|CESC|CHOL|COAD|ESCA|GBM|"
+    + "HNSC|KIRC|KIRP|LAML|LGG|LIHC|LUAD|LUSC|"
+    + "MESO|OV|PAAD|READ|SARC|SKCM|STAD|THCA|UCEC|UCS|UVM",
+
+
 rule run_survival_tcga:
     input:
         expr=rules.download_gene_expression.output,
         pheno=rules.compile_pheno.output,
         anno=rules.compile_genecode.output,
     output:
-        "results/gene/tcga.rds",
+        "results/gene/{tcga}.rds",
     threads: 8
     script:
         "../scripts/tcga-survival.R"

@@ -28,6 +28,132 @@ conda activate protocol
 bash workflow/envs/post.sh
 ```
 
+### Workflow configuration
+
+This pipeline is encapsulated in a Snakemake workflow, making it highly accessible and user-friendly. The user experience is further enhanced by the centralized configuration options housed in the `config/config.yaml` file. These configurations include,
+
+  1. Gencode Annotation version. Choose the preferred Gencode annotation version from the available options listed here: https://www.gencodegenes.org/human/releases.html. The default value is 36, to replicate the published results.
+
+      ```YAML
+      # Gencode annotation is going to be used for gene ID mapping.
+      # The Gencode release version.
+      # Choose the preferred Gencode annotation version from 
+      #   the available options listed here: https://www.gencodegenes.org/human/releases.html
+      gencode_version: "36"
+      ```
+  
+  2. The database used for pathway enrichment analysis. The options include MSigDB, KEGG, GO molecular function, GO biological process, or even a custom term-gene mapping file. The default is MSigDB.
+  
+      ```YAML
+      # Available databases for enrichment analysis:
+      #  1. MSigDB
+      #  2. KEGG
+      #  3. GO_MF
+      #  4. GO_BP
+      #  5. Custom pathway term-gene mapping file in the TSV format
+      #       with at least two columns,
+      #       one for the pathway term (ID and/or description),
+      #       and one for the gene (ensembl, entrez, and/or symbol).
+      #       For example:
+      #       ID        entrez    description
+      #       hsa01100  10        Metabolic pathways
+      #       hsa01100  100       Metabolic pathways
+      enrichment_analysis_database: MSigDB
+      ```
+
+  3. Custom dataset registration, allowing researchers to integrate custom datasets into the analysis. The configuration includes,
+
+      a. Dataset name. Define unique dataset names for easy identification and reference.
+
+      b. Gene level risk profile file. The file can be an R Data file, or TSV file, or XLSX file, and be formatted as required.
+
+      - At least one gene IDs, such as ensembl (Ensembl gene ID), entrez (NCBI Entrez gene ID), and symbol (gene symbol),
+      - beta, the effect size, such as survival log hazard ratio and correlation coefficient,
+      - pval, the statistical P-value associated with the corresponding “beta” value.
+
+      ```YAML
+      # Custom dataset registration.
+      datasets:
+        custom_1: # Dataset name
+          # Risk profile file in the gene level.
+          # The file can be an R Data, TSV, or XLSX, with at least three columns:
+          #   1. gene ID, such as `ensembl` (Ensembl gene ID), `entrez` (NCBI Entrez gene ID), and / or `symbol` (gene symbol)
+          #   2. `beta`, the effect size, such as survival log hazard ratio and correlation coefficient
+          #   3. `pval`, the statistical P-value associated with the `beta` value
+          gene: "path/to/gene_level_risk_profile"
+        AOR_vs_MAM: # An example
+          gene: "custom/AOR_vs_MAM_DGElist.xlsx"
+      ```
+
+  4. P-value and effect size cutoffs to remove noise and outlier genes.
+
+      ```YAML
+      # Criteria to remove noise and outlier genes.
+      ## General criteria
+      pvalue_range:
+        - 0
+        - 0.5
+      beta_range:
+        - "-Inf"
+        - "Inf"
+      ## Dataset specific criteria,
+      ##   which will overwrite the corresponding general criteria
+      bike_plaque:
+        beta_range:
+          - -10
+          - 10
+      ```
+
+  5. Dataset clustering configuration, further including,
+
+      a. Analysis name. Define unique names for different analyses combining various datasets and resolution setting. Each name will serve as a prefix for corresponding output filenames (e.g., reports/cancer_only-clustering.html for analysis “cancer_only”).
+
+      b. Associated datasets. Specify the list of datasets included in each analysis.
+
+      c. Resolution parameter. This parameter controls the granularity of clustering. Higher values (above 1.0) lead to a larger number of communities, while lower values (below 1.0) result in a smaller number of communities. The optimal value depends on the specific goals. Additional details are available here: https://satijalab.org/seurat/reference/findclusters.
+
+      ```YAML
+      # Clustering parameters.
+      # This part configures which datasets will be included in the clustering analysis,
+      #   and how densely clustered datasets are grouped together.
+      # Configurations for multiple analyses are allowed.
+      dataset_clustering:
+
+        cancer_only: # Analysis name, as prefix to the corresponding output filenames
+          datasets: # The list of datasets included in the analysis
+            [
+              "ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", 
+              "ESCA", "GBM", "HNSC", "KIRC", "KIRP", "LAML", "LGG",
+              "LIHC", "LUAD", "LUSC", "MESO", "OV", "PAAD", "READ",
+              "SARC", "SKCM", "STAD", "THCA", "UCEC", "UCS", "UVM"
+            ]
+          # The resolution parameter controls the granularity of clustering.
+          # Higher values (above 1.0) lead to a larger number of communities, 
+          #   while lower values (below 1.0) result in a smaller number of communities.
+          # The optimal value depends on the specific goals.
+          # For details, see https://satijalab.org/seurat/reference/findclusters
+          resolution: 1
+      ```
+
+  6. Dataset grouping configuration. The grouping configuration may depend on dataset clustering results. The configuration further includes,
+
+      a. Analysis name. Similar to clustering, specify distinct names for various grouping configurations. These names will again prefix output filenames, for example, “reports/ cancer_clusters-shared_risks.html” for the analysis “cancer_clusters”.
+
+      b. Group names and their associated datasets. Assign meaningful names to each cluster of datasets after dataset clustering.
+
+      ```YAML
+      # Dataset group definition.
+      # The grouping configuration may depend on dataset clustering results.
+      # Here is the chance to assign meaningful names to each cluster after dataset clustering.
+      dataset_grouping:
+
+        cancer_clusters: # Analysis name, as prefix to the corresponding output filenames
+          inflammatory: ["BRCA" , "CESC" , "GBM" , "LGG" , "LUSC" , "OV" , "PAAD" , "READ" , "STAD" , "THCA"]
+          proliferative: ["ACC" , "BLCA" , "COAD" , "KIRC" , "KIRP" , "LUAD" , "MESO" , "SARC" , "SKCM" , "UCEC"]
+          metabolic: ["CHOL" , "ESCA" , "HNSC" , "LAML" , "LIHC" , "UCS" , "UVM"]
+      ```
+
+
 ### Download dependent resources
 
 These resources provide the initial materials necessary to replicate the two published studies.
@@ -47,7 +173,8 @@ tree resources
 # │   └── series.gz
 # ├── gencode.gff.gz
 # ├── gencode.metadata.entrez
-# ├── h.all.entrez.gmt
+# ├── gsea
+# │   └── msigdb
 # ├── lincs
 # │   ├── GPL20573.tsv.gz
 # │   └── octad.db_0.99.0.tar.gz
@@ -67,7 +194,6 @@ tree resources # list newly generated files below
 # │   ├── anno.rds
 # │   └── data.rds
 # ├── gencode.rds
-# ├── hallmark.rds
 # ├── lincs
 # │   ├── landmark.rds
 # │   └── lincs.rds
@@ -87,30 +213,34 @@ snakemake --cores all Gene
 tree results
 # results
 # └── gene
+#     ├── ACC.rd
 #     ├── AOR_duke.rds
 #     ├── AOR_syntax.rds
 #     ├── AOR_vs_MAM.rds
-#     ├── bike_plaque.rds
-#     └── tcga.rds
+#     ├── BLCA.rds
+#     ├── ...
+#     └── bike_plaque.rds
 ```
 
-Previous steps would be dataset specific. However, the results in directory “results/gene/” are standardized. Each R Data (RDS) file contains an R SummarizedExperiment object, comprising one or more assays slot storing the summary statistics, and a row annotation slot holding the GENCODE annotation. The filenames or assay names (if the RDA contains multiple assays) will serve as unique identifiers for the corresponding datasets. This standard structure simplifies the process of preparing results for analogous datasets, making it easier for researchers to incorporate them into subsequent analysis steps with minimal modification.
+Previous steps would be dataset specific. However, the results in directory “results/gene/” are standardized. Each R Data (RDS) file contains a table storing the summary statistics (beta and pval), and the GENCODE annotations (ensembl, entrez and symbol). The filenames will serve as unique identifiers for the corresponding datasets.
 
 ```bash
 snakemake --cores all Pathway
 
 tree results/pathway 
 # results/pathway
+# ├── ACC.rds
 # ├── AOR_duke.rds
 # ├── AOR_syntax.rds
 # ├── AOR_vs_MAM.rds
-# ├── bike_plaque.rds
-# └── tcga.rds
+# ├── BLCA.rds
+# ├── ...
+# └── bike_plaque.rds
 ```
 
 ### Cluster and identify shared risks
 
-These two steps are dependent on the configuration file "config/config.yaml". For the clustering, the "dataset_clustering" section controls which datasets will be clustered together. In this example, the pipeline will run clustering twice, one for "cancer_only" datasets, and another for "athero_and_cancer" datasets. Additionally, the clustering parameters could be fine-tuned in accordance with available knowledge and data.
+These two steps are dependent on the configuration file `config/config.yaml`. For the clustering, the "dataset_clustering" section controls which datasets will be clustered together. In this example, the pipeline will run clustering twice, one for "cancer_only" datasets, and another for "athero_and_cancer" datasets. Additionally, the clustering parameters could be fine-tuned in accordance with available knowledge and data.
 
 ```YAML
 dataset_clustering:
@@ -185,6 +315,7 @@ tree -P “rges.rds” results/compound
 # results/compound
 # └── rges.rds
 ```
+
 It is highly recommended to run this step on a high-performance computing cluster. The output “results/compound/rges.rds” is a table containing the reversal gene expression score (RGES) and associated P-value for each compound perturbation assay in each dataset.
 
 ### Validate the promising drug using EHR
