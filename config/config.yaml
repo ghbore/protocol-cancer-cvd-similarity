@@ -6,7 +6,7 @@ gencode_version: "36"
 
 
 # Available databases for enrichment analysis:
-#  1. MSigDB
+#  1. hallmark
 #  2. KEGG
 #  3. GO_MF
 #  4. GO_BP
@@ -18,7 +18,9 @@ gencode_version: "36"
 #       ID        entrez    description
 #       hsa01100  10        Metabolic pathways
 #       hsa01100  100       Metabolic pathways
-enrichment_analysis_database: MSigDB
+enrichment_analysis_database: hallmark
+# if hallmark DB is chosen, use this version
+msigdb_version: "7.2"
 
 
 # Custom dataset registration.

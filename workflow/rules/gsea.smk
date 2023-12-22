@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-rule prepare_msigdb:
+rule prepare_hallmark:
     output:
-        "resources/gsea/msigdb",
+        "resources/gsea/hallmark",
     params:
         version=config.get("msigdb_version", "7.2"),
     run:
@@ -62,7 +62,7 @@ def choose_gene_input(wildcards):
 
 
 def choose_gsea_db(wildcards):
-    db = config.get("enrichment_analysis_database", "MSigDB")
+    db = config.get("enrichment_analysis_database", "hallmark")
     if Path(db).is_file():
         return db
     return "resources/gsea/" + db.lower()
