@@ -10,6 +10,7 @@ include: "rules/cancer-tcga.smk"
 include: "rules/cluster.smk"
 include: "rules/custom.smk"
 include: "rules/phony.smk"
+include: "rules/dump.smk"
 
 
 rule all:

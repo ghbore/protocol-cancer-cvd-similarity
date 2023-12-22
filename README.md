@@ -42,11 +42,11 @@ This pipeline is encapsulated in a Snakemake workflow, making it highly accessib
       gencode_version: "36"
       ```
   
-  2. The database used for pathway enrichment analysis. The options include MSigDB, KEGG, GO molecular function, GO biological process, or even a custom term-gene mapping file. The default is MSigDB.
+  2. The database used for pathway enrichment analysis. The options include MSigDB, KEGG, GO molecular function, GO biological process, or even a custom term-gene mapping file. The default is hallmark.
   
       ```YAML
       # Available databases for enrichment analysis:
-      #  1. MSigDB
+      #  1. hallmark
       #  2. KEGG
       #  3. GO_MF
       #  4. GO_BP
@@ -58,7 +58,7 @@ This pipeline is encapsulated in a Snakemake workflow, making it highly accessib
       #       ID        entrez    description
       #       hsa01100  10        Metabolic pathways
       #       hsa01100  100       Metabolic pathways
-      enrichment_analysis_database: MSigDB
+      enrichment_analysis_database: hallmark
       ```
 
   3. Custom dataset registration, allowing researchers to integrate custom datasets into the analysis. The configuration includes,
