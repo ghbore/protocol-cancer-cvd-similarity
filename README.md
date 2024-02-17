@@ -2,6 +2,12 @@
 
 The accumulation of Omics and biobank resources allows for a holistic genome-wide understanding of the shared pathologic mechanisms that drive diseases and for strategies to identify drugs that could be repurposed as novel treatments for these diseases. However, this abundance of publicly available data can be challenging to integrate to generate valuable insights. We recently published two studies ([Gao et al, 2022](#1) and [Baylis et al, 2023](#2)) comparing transcriptional datasets correlated with disease outcomes between multiple diseases to allow for novel discovery of shared biology and for identification of novel putative therapies. Specifically, we used tumor transcriptomes correlated with cancer mortality to compare individual cancer subtypes and identified novel cancer clusters with shared biology and identify therapeutics that may benefit individual clusters. We expanded this effort by comparing the cancer dataset with multiple coronary artery disease datasets, which again revealed novel pathophysiologic insights and identified therapies that could be repurposed to treat both diseases. Herein, we present the computational protocol used in these works, implemented as a Snakemake workflow which will allow investigators to identify shared transcriptional processes that drive disease and how to use this data to screen existing compounds that could result in mutual benefit. This protocol also includes a description of the pharmacovigilance study design that was used to validate the effect of novel compounds using electronic health records where applicable.
 
+## Citation
+
+[![DOI:10.1016/j.xpro.2024.102883](http://img.shields.io/badge/DOI-10.1016/j.xpro.2024.102883-blue.svg)](https://star-protocols.cell.com/protocols/3300)
+
+Gao, Hua, Mao Zhang, Richard A. Baylis, Fudi Wang, Johan L.M. Björkegren, Jason J. Kovacic, Arno Ruusalepp, and Nicholas J. Leeper. “Computational Protocol to Identify Shared Transcriptional Risks and Mutually Beneficial Compounds between Diseases.” STAR Protocols 5, no. 1 (March 2024): 102883. https://doi.org/10.1016/j.xpro.2024.102883.
+
 ## Manual
 
 The pipeline below describes the specific steps used to identify the shared transcriptional risks between atherosclerosis and cancer, by using [The Cancer Genome Atlas (TCGA) datasets](www.cancer.gov/ccg/research/genome-sequencing/tcga) for the various cancer subtypes and the [Stockholm-Tartu Atherosclerosis Reverse Network Engineering Task (STARNET)](#3) and [Biobank of Karolinska Endarterectomy (BiKE)](ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE21545) atherosclerosis datasets. However, the protocol is adaptable to any analogous datasets from which summary statistics of transcriptional risks can be derived.
@@ -174,7 +180,7 @@ tree resources
 # ├── gencode.gff.gz
 # ├── gencode.metadata.entrez
 # ├── gsea
-# │   └── msigdb
+# │   └── hallmark
 # ├── lincs
 # │   ├── GPL20573.tsv.gz
 # │   └── octad.db_0.99.0.tar.gz
