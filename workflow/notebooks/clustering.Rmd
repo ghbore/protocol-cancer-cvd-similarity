@@ -115,7 +115,7 @@ FetchData(obj, "ident") |>
     write_tsv(paste(snakemake@output[[1]], ".tsv", sep = ""))
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, dpi=300}
 FetchData(obj, c("UMAP_1", "UMAP_2", "ident")) |>
     rownames_to_column("dataset") |>
     ggplot(aes(UMAP_1, UMAP_2, color = ident)) +

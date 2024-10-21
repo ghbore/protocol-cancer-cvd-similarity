@@ -210,7 +210,7 @@ gen_plot <- function (df, x, y){
             theme_void()
 }
 ```
-```{r echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+```{r echo=FALSE, message=FALSE, warning=FALSE, results="asis", dpi=300}
 for (i in seq(nrow(comparison))){
     cat("\n\n### ", comparison$label[i], "\n\n")
     print(gen_plot(df, comparison$x[i], comparison$y[i]))
